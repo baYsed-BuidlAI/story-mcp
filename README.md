@@ -1,3 +1,11 @@
+# venv preferation
+```bash
+python3.13 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+```
+
 # Story MCP Hub
 
 This repository serves as a central hub for Story Protocol's Model Context Protocol (MCP) servers. It provides a unified environment for running and managing various MCP services that enable AI agents to interact with Story Protocol's ecosystem.
