@@ -918,7 +918,7 @@ def __get_tusky_file_data_from_nft_metadata(metadata: str) -> str:
         # attributes에서 fileId 추출
         file_id = None
         for attr in meta.get("attributes", []):
-            if attr.get("trait_type") == "fileId":
+            if attr.get("trait_type") == "Tusky File ID":
                 file_id = attr.get("value")
                 break
         if not file_id:
