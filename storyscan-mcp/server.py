@@ -12,6 +12,9 @@ from utils.gas_utils import (
     format_gas_prices,
     format_gas_amount,
 )
+from tusky import TuskyClient
+import base64
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -895,6 +898,100 @@ def interpret_transaction(transaction_hash: str) -> str:
     except Exception as e:
         return f"Error interpreting transaction: {str(e)}"
 
+
+def __get_tusky_file_data_from_nft_metadata(metadata: str) -> str:
+    """
+    주어진 NFT 메타데이터 JSON에서 attributes를 파싱하여 fileId를 추출한 후,
+    TuskyClient의 get_file_data 함수를 통해 파일 바이너리 데이터를 받아 
+    base64 인코딩된 문자열로 반환합니다.
+    
+    Args:
+        metadata (str): NFT 메타데이터 JSON 문자열
+        
+    Returns:
+        str: base64 인코딩된 파일 바이너리 데이터 또는 에러 메시지
+    """
+    try:
+        # metadata가 문자열이면 파싱, 아니면 dict로 간주
+        meta = json.loads(metadata) if isinstance(metadata, str) else metadata
+        
+        # attributes에서 fileId 추출
+        file_id = None
+        for attr in meta.get("attributes", []):
+            if attr.get("trait_type") == "fileId":
+                file_id = attr.get("value")
+                break
+        if not file_id:
+            return "Error: No fileId information found in metadata."
+        
+        # TuskyClient 인스턴스 생성
+        client = TuskyClient()
+
+        response = client.get_file_data(file_id)
+        
+        # 파일 바이너리 데이터를 base64로 인코딩하여 반환
+        binary_content = response.content
+        encoded_data = base64.b64encode(binary_content).decode("utf-8")
+        return encoded_data
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+@mcp.tool()
+def get_tusky_file_data_with_wallet_and_nft_address(wallet_address: str, nft_address: str) -> str:
+    """
+    특정 지갑 주소의 NFT 홀딩을 확인하고, 지정된 NFT 컨트랙트 주소의 NFT 메타데이터에서
+    fileId를 추출하여 Tusky에서 파일 데이터를 가져옵니다.
+    
+    Args:
+        wallet_address: 지갑 주소
+        nft_address: NFT 컨트랙트 주소
+        
+    Returns:
+        str: base64로 인코딩된 파일 바이너리 데이터 또는 에러 메시지
+    """
+    try:
+        # 입력값 검증
+        if not wallet_address or not wallet_address.startswith("0x"):
+            return "Error: Invalid wallet address."
+        
+        if not nft_address or not nft_address.startswith("0x"):
+            return "Error: Invalid NFT contract address."
+        
+        # StoryScan 서비스를 통해 NFT 홀딩 정보 가져오기
+        nft_holdings = story_service.get_nft_holdings(wallet_address)
+        
+        if not nft_holdings or not nft_holdings.get("items"):
+            return f"Error: No NFT holdings found for wallet {wallet_address}."
+        
+        # 특정 NFT 컨트랙트 주소와 일치하는 NFT 찾기
+        target_nft = None
+        for nft_item in nft_holdings.get("items", []):
+            token = nft_item.get("token", {})
+            if token.get("address", "").lower() == nft_address.lower():
+                # NFT 컨트랙트를 찾았으면 해당 NFT의 인스턴스 확인
+                for instance in nft_item.get("token_instances", []):
+                    if instance.get("metadata"):
+                        target_nft = instance
+                        break
+                if target_nft:
+                    break
+        
+        if not target_nft:
+            return f"Error: No NFT found for contract {nft_address} in wallet {wallet_address}."
+        
+        # NFT 메타데이터 추출
+        metadata = target_nft.get("metadata")
+        if not metadata:
+            return "Error: No metadata found in the NFT."
+        
+        # 메타데이터에서 fileId 값 확인 및 파일 데이터 가져오기
+        file_data = __get_tusky_file_data_from_nft_metadata(metadata)
+        
+        return file_data
+        
+    except Exception as e:
+        return f"Error: {str(e)}"
+    
 
 if __name__ == "__main__":
     mcp.run()

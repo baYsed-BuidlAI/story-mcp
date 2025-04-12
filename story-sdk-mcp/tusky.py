@@ -47,28 +47,3 @@ class TuskyClient:
             "ipTag": ip_tag
         }
 
-def main():
-    vault_id = os.getenv("TUSKY_VAULT_ID")
-    if not vault_id:
-        raise ValueError("TUSKY_VAULT_ID 환경변수가 필요합니다.")
-
-    # IP 태그는 사용자 입력으로 받습니다.
-    ip_tag = input("파일에 지정할 IP 태그를 입력하세요: ")
-    tusky_client = TuskyClient()
-    # 실제 테스트를 위한 파일 경로 (실제 파일 경로로 수정)
-    file_path = "path_to_your_file.txt"
-
-    upload_result = tusky_client.upload_file(file_path, vault_id, ip_tag)
-    print("파일 업로드 결과:", json.dumps(upload_result, indent=2))
-
-    ip_metadata = {
-        "vaultId": upload_result["vaultId"],
-        "fileId": upload_result["fileId"],
-        "ipTag": upload_result["ipTag"],
-        "description": "File uploaded via ED25519 key with X25519 public key"
-    }
-    ip_creation_result = tusky_client.create_ip(ip_metadata)
-    print("IP 생성 결과:", json.dumps(ip_creation_result, indent=2))
-
-if __name__ == "__main__":
-    main()
