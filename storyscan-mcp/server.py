@@ -957,32 +957,65 @@ def get_tusky_file_data_with_wallet_and_nft_address(wallet_address: str, nft_add
         if not nft_address or not nft_address.startswith("0x"):
             return "Error: Invalid NFT contract address."
         
+        # 대소문자 구분 없이 비교를 위해 입력된 주소를 소문자로 변환
+        nft_address_lower = nft_address.lower()
+        
+        print(f"Looking for NFTs with contract address: {nft_address_lower}")
+        
         # StoryScan 서비스를 통해 NFT 홀딩 정보 가져오기
         nft_holdings = story_service.get_nft_holdings(wallet_address)
         
         if not nft_holdings or not nft_holdings.get("items"):
             return f"Error: No NFT holdings found for wallet {wallet_address}."
         
+        # 홀딩 정보 디버깅
+        print(f"Found {len(nft_holdings.get('items', []))} NFT holdings for wallet {wallet_address}")
+        
         # 특정 NFT 컨트랙트 주소와 일치하는 NFT 찾기
-        target_nft = None
+        target_nfts = []
         for nft_item in nft_holdings.get("items", []):
             token = nft_item.get("token", {})
-            if token.get("address", "").lower() == nft_address.lower():
-                # NFT 컨트랙트를 찾았으면 해당 NFT의 인스턴스 확인
-                for instance in nft_item.get("token_instances", []):
-                    if instance.get("metadata"):
-                        target_nft = instance
-                        break
-                if target_nft:
-                    break
+            token_address = token.get("address", "")
+            
+            # 주소 정규화 (소문자 변환)
+            if token_address:
+                token_address_lower = token_address.lower()
+                print(f"Comparing with NFT contract: {token_address_lower}")
+                
+                if token_address_lower == nft_address_lower:
+                    print(f"Match found! Token ID: {nft_item.get('id')}")
+                    target_nfts.append(nft_item)
         
+        if not target_nfts:
+            # 모든 NFT의 정보를 자세히 출력
+            all_contracts = [item.get("token", {}).get("address", "").lower() for item in nft_holdings.get("items", [])]
+            print(f"All NFT contracts in wallet: {all_contracts}")
+            return f"Error: No NFTs found for contract {nft_address} in wallet {wallet_address}."
+            
+        # 찾은 NFT 중에서 메타데이터가 있는 첫 번째 NFT 사용
+        target_nft = None
+        for nft in target_nfts:
+            if nft.get("metadata"):
+                target_nft = nft
+                print(f"Found NFT with metadata, ID: {nft.get('id')}")
+                break
+                
+        # 메타데이터가 없는 경우 첫 번째 NFT 사용
+        if not target_nft and target_nfts:
+            target_nft = target_nfts[0]
+            print(f"Using first NFT without metadata, ID: {target_nft.get('id')}")
+            
+            # 여기서 메타데이터를 별도로 조회하는 코드 추가가 필요할 수 있음
+            # 예: target_nft["metadata"] = story_service.get_nft_metadata(nft_address, target_nft["id"])
+            
         if not target_nft:
-            return f"Error: No NFT found for contract {nft_address} in wallet {wallet_address}."
+            return f"Error: No valid NFT found for contract {nft_address} in wallet {wallet_address}."
         
         # NFT 메타데이터 추출
         metadata = target_nft.get("metadata")
         if not metadata:
-            return "Error: No metadata found in the NFT."
+            token_id = target_nft.get("id")
+            return f"Error: No metadata found in the NFT with ID {token_id}. Please fetch metadata separately."
         
         # 메타데이터에서 fileId 값 확인 및 파일 데이터 가져오기
         file_data = __get_tusky_file_data_from_nft_metadata(metadata)
