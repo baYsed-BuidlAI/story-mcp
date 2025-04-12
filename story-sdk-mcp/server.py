@@ -426,7 +426,7 @@ def upload_file_and_create_ip(file_stream: str, ip_tag: str) -> str:
         ip_creation_result = story_service.mint_and_register_ip_with_terms(
             commercial_rev_share=50,  # 예시: 50% 수익 분배
             derivatives_allowed=True,  # 예시: 파생 저작물 허용
-            # registration_metadata=metadata_result["registration_metadata"],
+            registration_metadata=metadata_result["registration_metadata"],
             recipient=None,
             spg_nft_contract=None
         )

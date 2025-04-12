@@ -99,9 +99,9 @@ class StoryService:
             "commercialUse": response[4],
             "commercialAttribution": response[5],
             "commercializerChecker": response[6],
-            "commercializerCheckerData": response[7].hex()
-            if isinstance(response[7], bytes)
-            else response[7],
+            "commercializerCheckerData": (
+                response[7].hex() if isinstance(response[7], bytes) else response[7]
+            ),
             "commercialRevShare": response[8],
             "commercialRevCeiling": response[9],
             "derivativesAllowed": response[10],
@@ -340,9 +340,9 @@ class StoryService:
             # Create metadata structure for registration
             registration_metadata = {
                 "ip_metadata_uri": ip_metadata_uri,
-                "ip_metadata_hash": ip_metadata_hash.hex(),
+                "ip_metadata_hash": "0x" + ip_metadata_hash.hex(),
                 "nft_metadata_uri": nft_metadata_uri,
-                "nft_metadata_hash": nft_metadata_hash.hex(),
+                "nft_metadata_hash": "0x" + nft_metadata_hash.hex(),
             }
 
             return {
