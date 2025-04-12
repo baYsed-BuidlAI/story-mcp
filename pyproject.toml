@@ -28,4 +28,10 @@ dependencies = [
     # Utilities
     "loguru>=0.7.3",
     "ruff>=0.9.7",
+
+    "PyNaCl>=1.5.0",
+    "tuspy",
 ]
+
+[tool.setuptools.packages.find]
+exclude = ["lib*", "include*", "bin*", "story_mcp_hub.egg-info", "tests*"]

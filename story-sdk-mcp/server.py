@@ -6,6 +6,7 @@ from typing import Union
 import json
 import sys
 from pathlib import Path
+from tusky import TuskyClient
 
 # Add the parent directory to the Python path so we can import utils
 sys.path.append(str(Path(__file__).parent.parent))
@@ -359,6 +360,57 @@ def create_spg_nft_collection(
 #         return f"Non-commercial social remixing PIL registered: {response}"
 #     except Exception as e:
 #         return f"Error registering non-commercial PIL: {str(e)}"
+
+def upload_file_and_create_ip(file_path: str, ip_tag: str) -> str:
+    """
+    파일을 Tusky Vault에 업로드한 후,
+    업로드 결과의 (vaultId, fileId, ipTag)값을 사용해 server.py에 있는 story_service를 통해
+    IP asset을 생성합니다.
+    
+    Args:
+      file_path: 업로드할 파일의 경로.
+      ip_tag: IP 태그.
+      
+    Returns:
+      업로드 결과와 IP 생성 결과를 포함한 JSON 문자열.
+    """
+    try:
+        vault_id = os.getenv("TUSKY_VAULT_ID")
+        if not vault_id:
+            return "TUSKY_VAULT_ID 환경변수가 없습니다."
+  
+        # 파일 업로드: TuskyClient는 api 키를 이용해 파일만 업로드합니다.
+        tusky_client = TuskyClient()
+        upload_result = tusky_client.upload_file(file_path, vault_id, ip_tag)
+        print("파일 업로드 결과:", json.dumps(upload_result, indent=2))
+        
+        # 업로드 결과를 기반으로 IP 생성 메타데이터 구성 (추가 정보 포함 가능)
+        ip_metadata = {
+            "vaultId": upload_result["vaultId"],
+            "fileId": upload_result["fileId"],
+            "ipTag": upload_result["ipTag"],
+            "description": "File uploaded via api key encrypted with X25519 public key"
+        }
+        
+        # TODO: fix ip creation
+        # # 기존 server.py의 story_service를 활용하여 IP를 생성합니다.
+        # # mint_and_register_ip_with_terms 함수는 상용 예시로, 필요에 따라 파라미터를 조정하세요.
+        # ip_creation_result = story_service.mint_and_register_ip_with_terms(
+        #     commercial_rev_share=50,          # 예시: 50% 수익 분배
+        #     derivatives_allowed=True,         # 예시: 파생 저작물 허용
+        #     registration_metadata=ip_metadata,
+        #     recipient=None,
+        #     spg_nft_contract=None
+        # )
+        
+        # result = {
+        #     "upload_result": upload_result,
+        #     "ip_creation_result": ip_creation_result
+        # }
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 
 if __name__ == "__main__":
     mcp.run()
