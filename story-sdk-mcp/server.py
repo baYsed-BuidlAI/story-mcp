@@ -384,12 +384,8 @@ def upload_file_and_create_ip(file_stream: str, ip_tag: str) -> str:
         
         # 입력 데이터 처리: JSON 문자열 또는 Base64 인코딩 문자열 둘 다 처리
         try:
-            # 먼저 JSON 파싱을 시도합니다
             try:
-                json_data = json.loads(file_stream)
-                # JSON 파싱에 성공하면 이를 다시 문자열로 변환하여 메모리 스트림으로 변환
-                file_data_string = json.dumps(json_data)
-                file_data_stream = io.BytesIO(file_data_string.encode('utf-8'))
+                file_data_stream = io.BytesIO(file_stream.encode('utf-8'))
                 print("JSON 데이터 파싱 완료")
             except json.JSONDecodeError:
                 # JSON 파싱에 실패하면 Base64 디코딩 시도
@@ -430,7 +426,7 @@ def upload_file_and_create_ip(file_stream: str, ip_tag: str) -> str:
         ip_creation_result = story_service.mint_and_register_ip_with_terms(
             commercial_rev_share=50,  # 예시: 50% 수익 분배
             derivatives_allowed=True,  # 예시: 파생 저작물 허용
-            registration_metadata=metadata_result["registration_metadata"],
+            # registration_metadata=metadata_result["registration_metadata"],
             recipient=None,
             spg_nft_contract=None
         )
