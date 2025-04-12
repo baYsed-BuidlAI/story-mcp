@@ -371,7 +371,7 @@ def upload_file_and_create_ip(file_stream: str, ip_tag: str) -> str:
     IP asset을 생성합니다.
     
     Args:
-      file_stream: Base64로 인코딩된 파일 데이터.
+      file_stream: JSON 문자열 또는 Base64로 인코딩된 파일 데이터.
       ip_tag: IP 태그.
       
     Returns:
@@ -382,24 +382,29 @@ def upload_file_and_create_ip(file_stream: str, ip_tag: str) -> str:
         if not vault_id:
             return "TUSKY_VAULT_ID 환경변수가 없습니다."
         
-        # Base64 디코딩: 클라이언트에서 Base64로 인코딩된 데이터를 디코딩
+        # 입력 데이터 처리: JSON 문자열 또는 Base64 인코딩 문자열 둘 다 처리
         try:
-            # Base64 문자열 디코딩
-            decoded_data = base64.b64decode(file_stream)
-            
-            # 이진 데이터를 메모리 스트림으로 변환
-            file_data_stream = io.BytesIO(decoded_data)
-            
-            print("파일 데이터 디코딩 완료")
+            # 먼저 JSON 파싱을 시도합니다
+            try:
+                json_data = json.loads(file_stream)
+                # JSON 파싱에 성공하면 이를 다시 문자열로 변환하여 메모리 스트림으로 변환
+                file_data_string = json.dumps(json_data)
+                file_data_stream = io.BytesIO(file_data_string.encode('utf-8'))
+                print("JSON 데이터 파싱 완료")
+            except json.JSONDecodeError:
+                # JSON 파싱에 실패하면 Base64 디코딩 시도
+                decoded_data = base64.b64decode(file_stream)
+                file_data_stream = io.BytesIO(decoded_data)
+                print("Base64 데이터 디코딩 완료")
         except Exception as e:
-            return f"Base64 디코딩 오류: {str(e)}"
+            return f"입력 데이터 처리 오류: {str(e)}"
   
         # 파일 업로드: TuskyClient는 api 키를 이용해 파일만 업로드합니다.
         tusky_client = TuskyClient()
         upload_result = tusky_client.upload_file(file_data_stream, vault_id, ip_tag)
         print("파일 업로드 결과:", json.dumps(upload_result, indent=2))
         
-                # 2. 메타데이터 생성 및 IPFS 업로드
+        # 2. 메타데이터 생성 및 IPFS 업로드
         metadata_result = story_service.create_ip_metadata(
             image_uri="ipfs://bafkreidpvtlzmssauuo6diswckix6qlz2k7oolqhmsw722nrvm7k4uo3iq",
             name="test",
@@ -420,7 +425,6 @@ def upload_file_and_create_ip(file_stream: str, ip_tag: str) -> str:
             ]
         )
         print("메타데이터 생성 및 IPFS 업로드 완료")
-
 
         # 3. NFT 민팅 및 IP 등록
         ip_creation_result = story_service.mint_and_register_ip_with_terms(
